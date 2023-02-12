@@ -2,6 +2,8 @@
 #include "formula.h"
 #include "test_runner_p.h"
 
+#include <limits>
+
 inline std::ostream& operator<<(std::ostream& output, Position pos) {
     return output << "(" << pos.row << ", " << pos.col << ")";
 }
@@ -250,7 +252,7 @@ void TestErrorDiv0() {
 void TestEmptyCellTreatedAsZero() {
     auto sheet = CreateSheet();
     sheet->SetCell("A1"_pos, "=B2");
-    ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(), CellInterface::Value(0));
+    ASSERT_EQUAL(sheet->GetCell("A1"_pos)->GetValue(), CellInterface::Value(0.0));
 }
 
 void TestFormulaInvalidPosition() {
@@ -258,6 +260,7 @@ void TestFormulaInvalidPosition() {
     auto try_formula = [&](const std::string& formula) {
         try {
             sheet->SetCell("A1"_pos, formula);
+
             ASSERT(false);
         } catch (const FormulaException&) {
             // we expect this one
@@ -347,7 +350,110 @@ void TestCellCircularReferences() {
     ASSERT(caught);
     ASSERT_EQUAL(sheet->GetCell("M6"_pos)->GetText(), "Ready");
 }
+
 }  // namespace
+
+void MyTestPrint(){
+    {
+        auto sheet = CreateSheet();
+        sheet->SetCell("A1"_pos, "=B1");
+        sheet->SetCell("B1"_pos, "dfh");
+        std::ostringstream values;
+        sheet->PrintValues(values);
+        std::string str = values.str();
+        ASSERT_EQUAL(values.str(), "#VALUE!\tdfh\n");
+    }
+    /*{
+        auto sheet = CreateSheet();
+        try{
+            sheet->SetCell("A1"_pos, "=ABCD1");
+        }catch(const FormulaException&){
+
+        }
+
+        sheet->SetCell("B1"_pos, "dfh");
+        std::ostringstream values;
+        sheet->PrintValues(values);
+        std::string str = values.str();
+        ASSERT_EQUAL(values.str(), "#REF!\tdfh\n");
+    }*/
+    {
+        auto sheet = CreateSheet();
+        sheet->SetCell("A1"_pos, "=B1/B2");
+        sheet->SetCell("B1"_pos, "1");
+        sheet->SetCell("B2"_pos, "0");
+        std::ostringstream values;
+        sheet->PrintValues(values);
+        std::string str = values.str();
+        ASSERT_EQUAL(values.str(), "#DIV/0!\t1\n\t0\n")
+    }
+    {
+        auto sheet = CreateSheet();
+        sheet->SetCell("A1"_pos, "=B1/A2");
+        sheet->SetCell("B1"_pos, "1");
+        sheet->SetCell("A2"_pos, "0");
+        std::ostringstream values;
+        sheet->PrintValues(values);
+        std::string str = values.str();
+        ASSERT_EQUAL(values.str(), "#DIV/0!\t1\n0\t\n")
+    }
+}
+
+void MyTestGetPrintableSize(){
+    {
+        auto sheet = CreateSheet();
+        sheet->SetCell("A1"_pos, "=G4 + F2");
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{1, 1}));
+    }
+    {
+        auto sheet = CreateSheet();
+        sheet->SetCell("A1"_pos, "=G4 + F2");
+        sheet->ClearCell("A1"_pos);
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{0, 0}));
+    }
+    {
+        auto sheet = CreateSheet();
+        sheet->SetCell("A1"_pos, "=G4 + F2");
+        sheet->SetCell("G4"_pos , "=F2");
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{4, 7}));
+        sheet->ClearCell("A1"_pos);
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{4, 7}));
+    }
+    {
+        auto sheet = CreateSheet();
+        sheet->SetCell("A1"_pos, "=G4 + F2");
+        sheet->SetCell("G4"_pos , "=F2");
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{4, 7}));
+        sheet->ClearCell("G4"_pos);
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{1, 1}));
+    }
+    {
+        auto sheet = CreateSheet();
+        sheet->SetCell("A1"_pos, "=G4 + F2");
+        sheet->SetCell("G4"_pos , "=F2");
+        sheet->SetCell("F2"_pos, "2");
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{4, 7}));
+        sheet->ClearCell("F2"_pos);
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{4, 7}));
+    }
+    {
+        auto sheet = CreateSheet();
+        sheet->SetCell("A1"_pos, "1");
+        sheet->SetCell("A8"_pos , "1");
+        sheet->SetCell("A9"_pos, "2");
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{9, 1}));
+        sheet->ClearCell("F2"_pos);
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{9, 1}));
+        sheet->ClearCell("A9"_pos);
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{8, 1}));
+        sheet->ClearCell("A1"_pos);
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{8, 1}));
+        sheet->ClearCell("A8"_pos);
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{0, 0}));
+        sheet->ClearCell("A1"_pos);
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{0, 0}));
+    }
+}
 
 int main() {
     TestRunner tr;
@@ -370,4 +476,7 @@ int main() {
     RUN_TEST(tr, TestCellReferences);
     RUN_TEST(tr, TestFormulaIncorrect);
     RUN_TEST(tr, TestCellCircularReferences);
+    RUN_TEST(tr, MyTestPrint);
+    RUN_TEST(tr, MyTestGetPrintableSize);
+    return 0;
 }
