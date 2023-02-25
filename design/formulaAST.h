@@ -22,12 +22,14 @@ public:
     FormulaAST& operator=(FormulaAST&&) = default;
     ~FormulaAST();
 
-    double Execute() const;
+    double Execute(std::function<double(Position)>) const;
     void Print(std::ostream& out) const;
     void PrintFormula(std::ostream& out) const;
+	std::vector<Position> GetReferencedCells() const();
 
 private:
     std::unique_ptr<ASTImpl::Expr> root_expr_;
+	std::forward_list<Position> dependencies_;
 };
 
 FormulaAST ParseFormulaAST(std::istream& in);

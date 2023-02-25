@@ -44,7 +44,6 @@ std::string_view FormulaError::ToString() const{
 namespace {
 class Formula : public FormulaInterface {
 public:
-// Реализуйте следующие методы:
     explicit Formula(std::string expression);
     Value Evaluate(const SheetInterface& sheet) const override;
     std::string GetExpression() const override;

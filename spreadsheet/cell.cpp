@@ -15,7 +15,7 @@ Cell::Cell(Sheet& sheet)
 
 void Cell::Set(std::string text) {
     if(!text.empty()){
-        if(text.front() == '=' && text.size() > 1){
+        if(text.front() == FORMULA_SIGN && text.size() > 1){
             impl_ = std::make_unique<FormulaImpl>(text.substr(1), sheet_);
         }
         else{
@@ -70,7 +70,7 @@ Cell::TextImpl::TextImpl(std::string text)
 {}
 
 Cell::Value Cell::TextImpl::GetValue() const{
-    if(text_.front() == '\''){
+    if(text_.front() == ESCAPE_SIGN){
         return text_.substr(1);
     }
     else{

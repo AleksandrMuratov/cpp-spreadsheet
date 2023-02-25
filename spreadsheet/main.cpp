@@ -363,20 +363,6 @@ void MyTestPrint(){
         std::string str = values.str();
         ASSERT_EQUAL(values.str(), "#VALUE!\tdfh\n");
     }
-    /*{
-        auto sheet = CreateSheet();
-        try{
-            sheet->SetCell("A1"_pos, "=ABCD1");
-        }catch(const FormulaException&){
-
-        }
-
-        sheet->SetCell("B1"_pos, "dfh");
-        std::ostringstream values;
-        sheet->PrintValues(values);
-        std::string str = values.str();
-        ASSERT_EQUAL(values.str(), "#REF!\tdfh\n");
-    }*/
     {
         auto sheet = CreateSheet();
         sheet->SetCell("A1"_pos, "=B1/B2");
